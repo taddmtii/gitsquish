@@ -29,6 +29,7 @@ func main() {
 		fmt.Println("Code shipped!")
 		os.Exit(0)		
 	case "stats":
-		// TODO: Implement		
+		service.Stats()
+		os.Exit(0)
 	}
 }
