@@ -28,5 +28,7 @@ func main() {
 		service.Ship(*message)
 		fmt.Println("Code shipped!")
 		os.Exit(0)		
+	case "stats":
+		// TODO: Implement		
 	}
 }
