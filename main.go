@@ -26,7 +26,6 @@ func main() {
 			os.Exit(1)
 		}
 		service.Ship(*message)
-		fmt.Println("Code shipped!")
 		os.Exit(0)		
 	case "stats":
 		service.Stats()

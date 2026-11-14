@@ -20,6 +20,7 @@ func (s *Service) Ship(message string) {
 		fmt.Println("Something went wrong with git add command.")
 		return
 	}
+	fmt.Println("Staging complete...")
 
 	args = []string{"commit", "-m", message}
 	output, err = s.RunCommand(args)
@@ -28,6 +29,7 @@ func (s *Service) Ship(message string) {
 		fmt.Println(output)
 		return
 	}
+	fmt.Println("Commit complete...")
 
 
 	args = []string{"push"}
@@ -37,7 +39,7 @@ func (s *Service) Ship(message string) {
 		fmt.Println(output)
 		return
 	}
-
+	fmt.Println("Push complete... \n")
 }
 
 // Usage: gitsquish stats
