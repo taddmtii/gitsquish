@@ -1,44 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"flag"
-	"os/exec"
+	"fmt"
 	"os"
 )
 
 func main() {
-	// Get and parse commit message
-	commitFlag := flag.String("m", "", "Commit Message")
-	flag.Parse()
-	if *commitFlag == "" {
-		fmt.Println("Error: commit message cannot be empty")
+
+	service := NewService()
+
+	// Read arguments from the command line
+	args := os.Args
+	if len(args) <= 1 {
+		fmt.Println("Invalid command.")
 		os.Exit(1)
 	}
+	command := args[1]
 	
-	stageCmd := exec.Command("git", "add", ".")
-	err := stageCmd.Run()
-	if err != nil {
-		fmt.Println("Something went wrong with staging:", err)
-		return
+	switch command {
+	case "ship":
+		shipFlags := flag.NewFlagSet("ship", flag.ExitOnError)
+		message := shipFlags.String("m", "", "Commit Message")
+		shipFlags.Parse(args[2:])
+		if *message == "" {
+			fmt.Println("Error: commit message cannot be empty")
+			os.Exit(1)
+		}
+		service.ship(*message)
+		fmt.Println("Code shipped!")
+		os.Exit(0)
 	}
+	
 
-	commitCmd := exec.Command("git", "commit", "-m", *commitFlag)
-
-	commitCmd.Stdout = os.Stdout
-	commitCmd.Stderr = os.Stderr
-
-	err = commitCmd.Run()
-	if err != nil {
-		fmt.Println("Something went wrong with committing:", err)
-		return
-	}
-
-	pushCmd := exec.Command("git", "push")
-	err = pushCmd.Run()
-	if err != nil {
-		fmt.Println("Something went wrong with committing:", err)
-		return
-	}
-
+	
 }
