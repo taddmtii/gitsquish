@@ -25,8 +25,12 @@ func main() {
 			fmt.Println("Error: commit message cannot be empty")
 			os.Exit(1)
 		}
-		service.Ship(*message)
-		os.Exit(0)		
+		err := service.Ship(*message)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
 	case "stats":
 		service.Stats()
 		os.Exit(0)

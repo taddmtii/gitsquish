@@ -13,40 +13,35 @@ type Service struct{}
 func NewService() *Service { return &Service{} }
 
 // Usage: gitsquish ship -m "commit message"
-func (s *Service) Ship(message string) {
+func (s *Service) Ship(message string) error {
 	args := []string{"add", "."}
-	output, err := s.RunCommand(args)
+	_, err := s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with git add command.")
-		return
+		return fmt.Errorf("failed to stage changes: %w", err)
 	}
-	fmt.Println("Staging complete...")
+	fmt.Println("Changes staged.")
 
 	args = []string{"commit", "-m", message}
-	output, err = s.RunCommand(args)
+	_, err = s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with git commit command.")
-		fmt.Println(output)
-		return
+		return fmt.Errorf("failed to create commit: %w", err)
 	}
-	fmt.Println("Commit complete...")
-
+	fmt.Println("Commit created.")
 
 	args = []string{"push"}
-	output, err = s.RunCommand(args)
+	_, err = s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with git push command.")
-		fmt.Println(output)
-		return
+		return fmt.Errorf("commit created locally, but push failed: %w", err)
 	}
-	fmt.Println("Push complete... \n")
+	fmt.Println("Changes pushed.")
+	return nil
 }
 
 // Usage: gitsquish stats
 func (s *Service) Stats() {
 	// git rev-list --count HEAD
 	args := []string{"rev-list", "--count", "HEAD"}
-	output, err := s.RunCommand(args); 
+	output, err := s.RunCommand(args)
 	if err != nil {
 		fmt.Println("Something went wrong with getting total commits:", err)
 		return
@@ -55,19 +50,19 @@ func (s *Service) Stats() {
 
 	// git rev-list --count --since="30 days ago" HEAD
 	args = []string{"rev-list", "--count", "--since=\"30 days ago\"", "HEAD"}
-	output, err = s.RunCommand(args);
+	output, err = s.RunCommand(args)
 	if err != nil {
 		fmt.Println("Something went wrong with getting commits in last 30 days:", err)
-		return	
+		return
 	}
-	fmt.Println("Commits in last 30 days: ", strings.TrimSpace(output) + "\n")
+	fmt.Println("Commits in last 30 days: ", strings.TrimSpace(output)+"\n")
 
 	// git shortlog -sne HEAD
 	args = []string{"shortlog", "-sne", "HEAD"}
-	output, err = s.RunCommand(args);
+	output, err = s.RunCommand(args)
 	if err != nil {
 		fmt.Println("Something went wrong with getting shortlog:", err)
-		return	
+		return
 	}
 	// Create a table to format output correctly
 	table := tabwriter.NewWriter(os.Stdout, 0, 4, 3, ' ', 0)
