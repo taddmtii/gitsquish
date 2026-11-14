@@ -7,17 +7,15 @@ import (
 )
 
 func main() {
-
 	service := NewService()
 
-	// Read arguments from the command line
 	args := os.Args
 	if len(args) <= 1 {
 		fmt.Println("Invalid command.")
 		os.Exit(1)
 	}
+
 	command := args[1]
-	
 	switch command {
 	case "ship":
 		shipFlags := flag.NewFlagSet("ship", flag.ExitOnError)
@@ -27,11 +25,8 @@ func main() {
 			fmt.Println("Error: commit message cannot be empty")
 			os.Exit(1)
 		}
-		service.ship(*message)
+		service.Ship(*message)
 		fmt.Println("Code shipped!")
-		os.Exit(0)
+		os.Exit(0)		
 	}
-	
-
-	
 }

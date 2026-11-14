@@ -10,7 +10,7 @@ type Service struct {}
 func NewService() *Service { return &Service{} }
 
 // Usage: gitsquish ship -m "commit message"
-func (s *Service) ship(message string) {
+func (s *Service) Ship(message string) {
 
 	stageCmd := exec.Command("git", "add", ".")
 	err := stageCmd.Run()
