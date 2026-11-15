@@ -38,13 +38,12 @@ func (s *Service) Ship(message string) error {
 }
 
 // Usage: gitsquish stats
-func (s *Service) Stats() {
+func (s *Service) Stats() error {
 	// git rev-list --count HEAD
 	args := []string{"rev-list", "--count", "HEAD"}
 	output, err := s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with getting total commits:", err)
-		return
+		return fmt.Errorf("failed to get total commits: %w", err)
 	}
 	fmt.Println("Total Commits: ", strings.TrimSpace(output))
 
@@ -52,8 +51,7 @@ func (s *Service) Stats() {
 	args = []string{"rev-list", "--count", "--since=\"30 days ago\"", "HEAD"}
 	output, err = s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with getting commits in last 30 days:", err)
-		return
+		return fmt.Errorf("failed to get commits in the last 30 days: %w", err)
 	}
 	fmt.Println("Commits in last 30 days: ", strings.TrimSpace(output)+"\n")
 
@@ -61,8 +59,7 @@ func (s *Service) Stats() {
 	args = []string{"shortlog", "-sne", "HEAD"}
 	output, err = s.RunCommand(args)
 	if err != nil {
-		fmt.Println("Something went wrong with getting shortlog:", err)
-		return
+		return fmt.Errorf("failed to get contributors: %w", err)
 	}
 	// Create a table to format output correctly
 	table := tabwriter.NewWriter(os.Stdout, 0, 4, 3, ' ', 0)
@@ -77,8 +74,11 @@ func (s *Service) Stats() {
 
 		fmt.Fprintf(table, "%s\t%s\n", count, author)
 	}
-	table.Flush()
-
+	err = table.Flush()
+	if err != nil {
+		return fmt.Errorf("failed to write contributor table: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) RunCommand(args []string) (string, error) {
