@@ -101,6 +101,8 @@ func (s *Service) Stats() error {
 	}()
 
 	wg.Wait()
+	close(commandErrors)
+	close(commandResults)
 
 	for err := range commandErrors {
 		return err
