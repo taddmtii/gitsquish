@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"text/tabwriter"
 )
 
@@ -39,45 +40,79 @@ func (s *Service) Ship(message string) error {
 
 // Usage: gitsquish stats
 func (s *Service) Stats() error {
-	// git rev-list --count HEAD
-	args := []string{"rev-list", "--count", "HEAD"}
-	output, err := s.RunCommand(args)
-	if err != nil {
-		return fmt.Errorf("failed to get total commits: %w", err)
-	}
-	fmt.Println("Total Commits: ", strings.TrimSpace(output))
+	var wg sync.WaitGroup
+	commandErrors := make(chan error, 3)
+	commandResults := make(chan string, 3)
 
-	// git rev-list --count --since="30 days ago" HEAD
-	args = []string{"rev-list", "--count", "--since=\"30 days ago\"", "HEAD"}
-	output, err = s.RunCommand(args)
-	if err != nil {
-		return fmt.Errorf("failed to get commits in the last 30 days: %w", err)
-	}
-	fmt.Println("Commits in last 30 days: ", strings.TrimSpace(output)+"\n")
+	wg.Add(3)
 
-	// git shortlog -sne HEAD
-	args = []string{"shortlog", "-sne", "HEAD"}
-	output, err = s.RunCommand(args)
-	if err != nil {
-		return fmt.Errorf("failed to get contributors: %w", err)
-	}
-	// Create a table to format output correctly
-	table := tabwriter.NewWriter(os.Stdout, 0, 4, 3, ' ', 0)
+	go func() {
+		defer wg.Done()
 
-	fmt.Fprintln(table, "COMMITS\tCONTRIBUTOR")
+		args := []string{"rev-list", "--count", "HEAD"}
+		output, err := s.RunCommand(args)
+		if err != nil {
+			commandErrors <- fmt.Errorf("failed to get total commits: %w", err)
+			return
+		}
+		commandResults <- fmt.Sprintf("Total Commits: %s\n", strings.TrimSpace(output))
+	}()
 
-	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		count, author, found := strings.Cut(strings.TrimSpace(line), "\t")
-		if !found {
-			continue
+	go func() {
+		defer wg.Done()
+
+		args := []string{"rev-list", "--count", "--since=30 days ago", "HEAD"}
+		output, err := s.RunCommand(args)
+		if err != nil {
+			commandErrors <- fmt.Errorf("failed to get commits in the last 30 days: %w", err)
+			return
+		}
+		commandResults <- fmt.Sprintf("Commits in last 30 days: %s\n\n", strings.TrimSpace(output))
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		args := []string{"shortlog", "-sne", "HEAD"}
+		output, err := s.RunCommand(args)
+		if err != nil {
+			commandErrors <- fmt.Errorf("failed to get contributors: %w", err)
+			return
 		}
 
-		fmt.Fprintf(table, "%s\t%s\n", count, author)
+		var contributorTable strings.Builder
+		table := tabwriter.NewWriter(&contributorTable, 0, 4, 3, ' ', 0)
+		fmt.Fprintln(table, "COMMITS\tCONTRIBUTOR")
+
+		for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+			count, author, found := strings.Cut(strings.TrimSpace(line), "\t")
+			if !found {
+				continue
+			}
+			fmt.Fprintf(table, "%s\t%s\n", count, author)
+		}
+
+		err = table.Flush()
+		if err != nil {
+			commandErrors <- fmt.Errorf("failed to write contributor table: %w", err)
+			return
+		}
+		commandResults <- contributorTable.String()
+	}()
+
+	wg.Wait()
+
+	for err := range commandErrors {
+		return err
 	}
-	err = table.Flush()
-	if err != nil {
-		return fmt.Errorf("failed to write contributor table: %w", err)
+
+	for output := range commandResults {
+		_, err := fmt.Fprint(os.Stdout, output)
+		if err != nil {
+			return fmt.Errorf("failed to write stats: %w", err)
+		}
 	}
+
 	return nil
 }
 
